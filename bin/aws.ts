@@ -1,7 +1,22 @@
 #!/usr/bin/env node
-import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { AwsStack } from '../lib/aws-stack';
+import { Tags } from "aws-cdk-lib";
+import 'source-map-support/register';
+import { NetworkStack } from "../lib/network-stack";
+import { resolveCurrentUserOwnerName } from "../lib/utils";
 
-const app = new cdk.App();
-new AwsStack(app, 'AwsStack');
+async function main() {
+  const owner = await resolveCurrentUserOwnerName();
+
+  const app = new cdk.App();
+
+  const network = new NetworkStack(app);
+
+  Tags.of(app)
+    .add("owner", owner)
+}
+
+main().catch(er => {
+  console.log(er)
+  process.exit(1)
+})

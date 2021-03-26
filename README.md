@@ -24,3 +24,17 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
    https://console.aws.amazon.com/iam/home?region=eu-central-1#/users
 1. Go to Security credentials and Create access keys   
 
+## Deploying
+
+1. Prepare local shell and indicate which acccount you want to use
+
+```shell
+export AWS_ACCOUNT_ID=339594496974
+```
+
+2. Deploy 
+
+```shell
+npm run cdk:deploy
+```
+

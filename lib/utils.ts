@@ -14,7 +14,7 @@ function ownerName() {
   return name
 }
 
-function ownerSpecificName(resourceName: string, ownerEmail: string = ownerName()) {
+export function ownerSpecificName(resourceName: string, ownerEmail: string = ownerName()) {
   const ownerPrefix = ownerEmail
     .replace('@brightinventions.pl', '')
     .replace(/[^A-Za-z0-9-]/g, '-');

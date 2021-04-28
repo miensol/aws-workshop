@@ -9,23 +9,24 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "AWS_PROFILE=bright-training cdk",
-    "cdk:destroy": "npm run cdk -- destroy --all --role-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:role/TrainingCloudformationRole",
-    "cdk:deploy": "npm run cdk -- deploy --all --role-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:role/TrainingCloudformationRole"
+    "cdk:destroy": "npm run cdk -- destroy --all --role-arn=arn:aws:iam::$(aws sts get-caller-identity --query 'Account' --output text):role/TrainingCloudformationRole",
+    "cdk:deploy": "npm run cdk -- deploy --all --role-arn=arn:aws:iam::$(aws sts get-caller-identity --query 'Account' --output text):role/TrainingCloudformationRole"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "1.91.0",
+    "@aws-cdk/assert": "1.100.0",
     "@types/jest": "^26.0.10",
     "@types/node": "10.17.27",
+    "aws-cdk": "1.100.0",
     "jest": "^26.4.2",
     "ts-jest": "^26.2.0",
-    "aws-cdk": "1.91.0",
     "ts-node": "^9.0.0",
     "typescript": "~3.9.7"
   },
   "dependencies": {
-    "@aws-cdk/core": "1.91.0",
-    "@aws-cdk/aws-route53": "1.91.0",
-    "source-map-support": "^0.5.16",
-    "aws-sdk": "^2.853.0"
+    "@aws-cdk/aws-ec2": "1.100.0",
+    "@aws-cdk/aws-route53": "1.100.0",
+    "@aws-cdk/core": "1.100.0",
+    "aws-sdk": "^2.853.0",
+    "source-map-support": "^0.5.16"
   }
 }

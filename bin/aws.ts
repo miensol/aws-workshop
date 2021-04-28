@@ -2,9 +2,9 @@
 import * as cdk from "@aws-cdk/core";
 import {Tags} from "@aws-cdk/core";
 import 'source-map-support/register';
-import {NetworkStack} from "../lib/network-stack";
-import {resolveCurrentUserOwnerName} from "../lib/utils";
-import {MyServiceStack} from "../lib/my-service-stack";
+import { MyServiceStack } from "../lib/my-service-stack";
+import { NetworkStack } from "../lib/network-stack";
+import { resolveCurrentUserOwnerName } from "../lib/utils";
 
 async function main() {
   const owner = await resolveCurrentUserOwnerName();

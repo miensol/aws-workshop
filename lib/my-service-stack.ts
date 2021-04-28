@@ -33,5 +33,12 @@ export class MyServiceStack extends cdk.Stack {
       databaseName: "service",
       credentials: Credentials.fromGeneratedSecret("service")
     });
+
+    const bastion = new BastionHostLinux(this, 'Bastion', {
+      vpc: props.vpc,
+      instanceName: ownerSpecificName('bastion')
+    })
+
+    instance.connections.allowFrom(bastion.connections, Port.tcp(instance.dbInstanceEndpointPort as any), "Bastion host connection")
   }
 }

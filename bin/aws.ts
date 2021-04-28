@@ -2,6 +2,7 @@
 import * as cdk from "@aws-cdk/core";
 import { Tags } from "@aws-cdk/core";
 import 'source-map-support/register';
+import { MyServiceStack } from "../lib/my-service-stack";
 import { NetworkStack } from "../lib/network-stack";
 import { resolveCurrentUserOwnerName } from "../lib/utils";
 
@@ -11,6 +12,10 @@ async function main() {
   const app = new cdk.App();
 
   const network = new NetworkStack(app);
+
+  const myService = new MyServiceStack(app, {
+    vpc: network.vpc
+  })
 
   Tags.of(app)
     .add("owner", owner)

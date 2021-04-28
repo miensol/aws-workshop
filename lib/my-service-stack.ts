@@ -1,6 +1,7 @@
 import { IVpc, Vpc, InstanceClass,
   InstanceSize,
-  InstanceType, } from "aws-cdk-lib/aws-ec2";
+  InstanceType,
+  BastionHostLinux, } from "aws-cdk-lib/aws-ec2";
 import * as cdk from 'aws-cdk-lib';
 import {
   Credentials,
@@ -19,7 +20,7 @@ export class MyServiceStack extends cdk.Stack {
   constructor(scope: Construct, props: MyServiceProps) {
     super(scope, stackNameOf(MyServiceStack),);
 
-    const instance = new DatabaseInstance(this, 'Database', {
+    const database = new DatabaseInstance(this, 'Database', {
       vpc: props.vpc,
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
       engine: DatabaseInstanceEngine.mysql({
@@ -30,5 +31,12 @@ export class MyServiceStack extends cdk.Stack {
       databaseName: "service",
       credentials: Credentials.fromGeneratedSecret("service")
     });
+
+    const bastion = new BastionHostLinux(this, 'Bastion', {
+      vpc: props.vpc,
+      instanceName: ownerSpecificName('bastion')
+    })
+
+    database.connections.allowDefaultPortFrom(bastion.connections, "Bastion host connection")
   }
 }

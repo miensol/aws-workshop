@@ -4,6 +4,7 @@ import { Tags } from "aws-cdk-lib";
 import 'source-map-support/register';
 import { NetworkStack } from "../lib/network-stack";
 import { resolveCurrentUserOwnerName } from "../lib/utils";
+import { MyServiceStack } from "../lib/my-service-stack";
 
 async function main() {
   const owner = await resolveCurrentUserOwnerName();
@@ -12,8 +13,13 @@ async function main() {
 
   const network = new NetworkStack(app);
 
-  Tags.of(app)
-    .add("owner", owner)
+  const myService = new MyServiceStack(app, {
+    vpc: network.vpc
+  })
+
+  const appTags = Tags.of(app);
+  appTags.add("owner", owner)
+  appTags.add("auto-delete", "1d")
 }
 
 main().catch(er => {

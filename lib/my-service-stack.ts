@@ -8,7 +8,7 @@ import {
 import {
   Credentials,
   DatabaseInstance,
-  DatabaseInstanceEngine,
+  DatabaseInstanceEngine, MysqlEngineVersion,
   PostgresEngineVersion
 } from "@aws-cdk/aws-rds";
 import * as cdk from '@aws-cdk/core';
@@ -25,8 +25,8 @@ export class MyServiceStack extends cdk.Stack {
     const instance = new DatabaseInstance(this, 'Database', {
       vpc: props.vpc,
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
-      engine: DatabaseInstanceEngine.postgres({
-        version: PostgresEngineVersion.VER_13
+      engine: DatabaseInstanceEngine.mysql({
+        version: MysqlEngineVersion.VER_5_7
       }),
       multiAz: false,
       instanceIdentifier: ownerSpecificName("my-service"),

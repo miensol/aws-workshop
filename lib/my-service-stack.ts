@@ -3,13 +3,22 @@ import {
   InstanceClass,
   InstanceSize,
   InstanceType,
-  IVpc, Port
+  IVpc,
+  Port,
+  SubnetType
 } from "@aws-cdk/aws-ec2";
+import {
+  Cluster,
+  ContainerImage,
+  FargateService,
+  FargateTaskDefinition,
+  Secret
+} from "@aws-cdk/aws-ecs";
 import {
   Credentials,
   DatabaseInstance,
-  DatabaseInstanceEngine, MysqlEngineVersion,
-  PostgresEngineVersion
+  DatabaseInstanceEngine,
+  MysqlEngineVersion
 } from "@aws-cdk/aws-rds";
 import * as cdk from '@aws-cdk/core';
 import { ownerSpecificName, stackNameOf } from "./utils";
@@ -22,7 +31,7 @@ export class MyServiceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, props: MyServiceProps) {
     super(scope, stackNameOf(MyServiceStack),);
 
-    const database = new DatabaseInstance(this, 'Database', {
+    const databaseInstance = new DatabaseInstance(this, 'Database', {
       vpc: props.vpc,
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
       engine: DatabaseInstanceEngine.mysql({
@@ -39,6 +48,31 @@ export class MyServiceStack extends cdk.Stack {
       instanceName: ownerSpecificName('bastion')
     })
 
-    database.connections.allowDefaultPortFrom(bastion.connections, "Bastion host connection")
+    databaseInstance.connections.allowDefaultPortFrom(bastion.connections, "Bastion host connection")
+
+    const taskDefinition = new FargateTaskDefinition(this, 'PhpMyAdminTask', {});
+
+    taskDefinition.addContainer("phpmyadmin", {
+      image: ContainerImage.fromRegistry("phpmyadmin/phpmyadmin"),
+      portMappings: [{
+        containerPort: 80
+      }],
+      environment: {
+        PMA_HOST: databaseInstance.dbInstanceEndpointAddress
+      },
+      secrets: {
+        PMA_USER: Secret.fromSecretsManager(databaseInstance.secret!, "user"),
+        PMA_PASSWORD: Secret.fromSecretsManager(databaseInstance.secret!, "password"),
+      }
+    })
+    const fargateService = new FargateService(this, 'PhpMyAdmin', {
+      cluster: new Cluster(this, 'Cluster', {
+        vpc: props.vpc,
+      }),
+      taskDefinition: taskDefinition,
+      assignPublicIp: true
+    });
+
+    fargateService.connections.allowFromAnyIpv4(Port.tcp(80))
   }
 }

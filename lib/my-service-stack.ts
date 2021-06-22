@@ -1,16 +1,14 @@
 import {
-  BastionHostLinux,
   InstanceClass,
   InstanceSize,
   InstanceType,
-  IVpc, Port
+  IVpc
 } from "@aws-cdk/aws-ec2";
 import * as cdk from '@aws-cdk/core';
 import {
   Credentials,
   DatabaseInstance,
-  DatabaseInstanceEngine,
-  PostgresEngineVersion
+  DatabaseInstanceEngine, MysqlEngineVersion,
 } from "@aws-cdk/aws-rds";
 import { ownerSpecificName, stackNameOf } from "./utils";
 
@@ -19,7 +17,6 @@ interface MyServiceProps {
 }
 
 export class MyServiceStack extends cdk.Stack {
-  readonly vpc: IVpc;
 
   constructor(scope: cdk.Construct, props: MyServiceProps) {
     super(scope, stackNameOf(MyServiceStack),);
@@ -27,8 +24,8 @@ export class MyServiceStack extends cdk.Stack {
     const instance = new DatabaseInstance(this, 'Database', {
       vpc: props.vpc,
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
-      engine: DatabaseInstanceEngine.postgres({
-        version: PostgresEngineVersion.VER_13
+      engine: DatabaseInstanceEngine.mysql({
+        version: MysqlEngineVersion.VER_8_0
       }),
       multiAz: false,
       instanceIdentifier: ownerSpecificName("my-service"),

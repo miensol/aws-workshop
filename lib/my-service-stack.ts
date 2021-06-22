@@ -7,8 +7,6 @@ interface MyServiceProps {
 }
 
 export class MyServiceStack extends cdk.Stack {
-  readonly vpc: IVpc;
-
   constructor(scope: cdk.Construct, props: MyServiceProps) {
     super(scope, stackNameOf(MyServiceStack),);
 

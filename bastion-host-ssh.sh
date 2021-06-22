@@ -14,12 +14,12 @@ aws ec2-instance-connect send-ssh-public-key \
   --availability-zone "${bastion_host_az}" \
   --ssh-public-key "file://~/.ssh/id_rsa.pub"
 
-local_port=5432
+local_port=3306
 
 read -rp "Database endpoint hostname: " database_private_fqdn
 
-# Open a tunnel through bastion host to database on port 5432
-ssh -v -N -L "${local_port}:${database_private_fqdn}:5432" \
+# Open a tunnel through bastion host to database on port 3306
+ssh -v -N -L "${local_port}:${database_private_fqdn}:3306" \
   -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" \
   -o ProxyCommand="aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters portNumber=%p" \
   "ec2-user@${bastion_host_instance_id}"

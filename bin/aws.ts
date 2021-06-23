@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import * as cdk from "@aws-cdk/core";
-import { Tags } from "@aws-cdk/core";
+import {Tags} from "@aws-cdk/core";
 import 'source-map-support/register';
-import { MyServiceStack } from "../lib/my-service-stack";
-import { NetworkStack } from "../lib/network-stack";
-import { resolveCurrentUserOwnerName } from "../lib/utils";
+import {MyServiceStack} from "../lib/my-service-stack";
+import {NetworkStack} from "../lib/network-stack";
+import {resolveCurrentUserOwnerName} from "../lib/utils";
 
 async function main() {
   const owner = await resolveCurrentUserOwnerName();
@@ -17,8 +17,9 @@ async function main() {
     vpc: network.vpc
   })
 
-  Tags.of(app)
-    .add("owner", owner)
+  const appTags = Tags.of(app);
+  appTags.add("owner", owner)
+  appTags.add("auto-delete", "1d")
 }
 
 main().catch(er => {

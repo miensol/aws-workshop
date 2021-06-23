@@ -22,7 +22,7 @@ export class MyServiceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, props: MyServiceProps) {
     super(scope, stackNameOf(MyServiceStack),);
 
-    const instance = new DatabaseInstance(this, 'Database', {
+    const database = new DatabaseInstance(this, 'Database', {
       vpc: props.vpc,
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
       engine: DatabaseInstanceEngine.mysql({
@@ -39,6 +39,6 @@ export class MyServiceStack extends cdk.Stack {
       instanceName: ownerSpecificName('bastion')
     })
 
-    instance.connections.allowFrom(bastion.connections, Port.tcp(instance.dbInstanceEndpointPort as any), "Bastion host connection")
+    database.connections.allowDefaultPortFrom(bastion.connections, "Bastion host connection")
   }
 }

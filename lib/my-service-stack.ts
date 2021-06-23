@@ -74,5 +74,7 @@ export class MyServiceStack extends cdk.Stack {
     });
 
     fargateService.connections.allowFromAnyIpv4(Port.tcp(80))
+
+    databaseInstance.connections.allowDefaultPortFrom(fargateService.connections, "PhpMyAdmin")
   }
 }

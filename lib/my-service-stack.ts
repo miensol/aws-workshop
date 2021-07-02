@@ -9,10 +9,10 @@ import {
   Credentials,
   DatabaseInstance,
   DatabaseInstanceEngine, MysqlEngineVersion,
-  PostgresEngineVersion
 } from "@aws-cdk/aws-rds";
 import * as cdk from '@aws-cdk/core';
-import { ownerSpecificName, stackNameOf } from "./utils";
+import {ownerSpecificName, stackNameOf} from "./utils";
+import {Cluster, ContainerImage, FargateService, FargateTaskDefinition, Secret} from "@aws-cdk/aws-ecs";
 
 interface MyServiceProps {
   vpc: IVpc
@@ -40,5 +40,34 @@ export class MyServiceStack extends cdk.Stack {
     })
 
     database.connections.allowDefaultPortFrom(bastion.connections, "Bastion host connection")
+
+    const taskDefinition = new FargateTaskDefinition(this, 'task');
+
+    taskDefinition.addContainer('phpmyadmin', {
+      image: ContainerImage.fromRegistry("phpmyadmin/phpmyadmin"),
+      portMappings: [{
+        containerPort: 80
+      }],
+      environment: {
+        PMA_HOST: database.dbInstanceEndpointAddress
+      },
+      secrets: {
+        PMA_USER: Secret.fromSecretsManager(database.secret!, "username"),
+        PMA_PASSWORD: Secret.fromSecretsManager(database.secret!, "password"),
+      }
+    })
+
+    const phpMyAdminService = new FargateService(this, 'php my admin', {
+      cluster: new Cluster(this, 'Cluster', {
+        vpc: props.vpc
+      }),
+      taskDefinition: taskDefinition,
+      assignPublicIp: true,
+    });
+
+    phpMyAdminService.connections.allowFromAnyIpv4(Port.tcp(80), "Http access")
+
+    database.connections.allowDefaultPortFrom(phpMyAdminService.connections, "php my admin")
+
   }
 }

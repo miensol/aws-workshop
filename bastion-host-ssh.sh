@@ -1,5 +1,7 @@
 set -ex
 
+export AWS_REGION=eu-central-1
+
 aws_user_name=$(aws sts get-caller-identity --query='Arn' --output text | sed 's/.*\///')
 # Fine bastion_host_instance_id bastion_host_az for bastion host of current user
 read -r bastion_host_instance_id bastion_host_az <<<$(aws ec2 describe-instances \

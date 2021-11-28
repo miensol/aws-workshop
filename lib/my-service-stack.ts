@@ -58,7 +58,7 @@ export class MyServiceStack extends cdk.Stack {
         PMA_HOST: databaseInstance.dbInstanceEndpointAddress
       },
       secrets: {
-        PMA_USER: Secret.fromSecretsManager(databaseInstance.secret!, "user"),
+        PMA_USER: Secret.fromSecretsManager(databaseInstance.secret!, "username"),
         PMA_PASSWORD: Secret.fromSecretsManager(databaseInstance.secret!, "password"),
       }
     })

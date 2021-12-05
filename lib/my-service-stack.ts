@@ -10,8 +10,9 @@ import {
   FargateTaskDefinition,
   Secret
 } from "aws-cdk-lib/aws-ecs";
-import * as cdk from 'aws-cdk-lib';
 import { IPublicHostedZone } from "aws-cdk-lib/aws-route53";
+import { ApplicationLoadBalancer, ApplicationProtocol } from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import * as cdk from 'aws-cdk-lib';
 import {
   Credentials,
   DatabaseInstance,
@@ -19,6 +20,7 @@ import {
 } from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
 import { stackNameOf, ownerSpecificName } from "./utils";
+import { CfnOutput, Duration } from "aws-cdk-lib";
 
 interface MyServiceProps {
   vpc: IVpc
@@ -74,8 +76,27 @@ export class MyServiceStack extends cdk.Stack {
       taskDefinition: taskDefinition,
     });
 
-    fargateService.connections.allowFromAnyIpv4(Port.tcp(80))
-
     databaseInstance.connections.allowDefaultPortFrom(fargateService.connections, "PhpMyAdmin")
+
+    const loadBalancer = new ApplicationLoadBalancer(this, 'Load Balancer', {
+      vpc: props.vpc,
+      internetFacing: true
+    });
+
+    const httpListener = loadBalancer.addListener('http', {
+      open: true,
+      protocol: ApplicationProtocol.HTTP
+    });
+
+    new CfnOutput(this, 'Load Balancer FQDN', {
+      value: loadBalancer.loadBalancerDnsName
+    })
+
+    const phpMyAdminTargetGroup = httpListener.addTargets('phpmyadmin', {
+      port: 80,
+      deregistrationDelay: Duration.seconds(10)
+    });
+
+    phpMyAdminTargetGroup.addTarget(fargateService)
   }
 }

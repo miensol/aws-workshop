@@ -11,7 +11,7 @@ import {
   Secret
 } from "aws-cdk-lib/aws-ecs";
 import { IPublicHostedZone, CnameRecord } from "aws-cdk-lib/aws-route53";
-import { ApplicationLoadBalancer, ApplicationProtocol, ListenerCertificate } from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import { ApplicationLoadBalancer, ApplicationProtocol, ListenerCertificate, ListenerAction } from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as cdk from 'aws-cdk-lib';
 import {
   Credentials,
@@ -93,12 +93,12 @@ export class MyServiceStack extends cdk.Stack {
       value: loadBalancer.loadBalancerDnsName
     })
 
-    const phpMyAdminHttpTargetGroup = httpListener.addTargets('phpmyadmin', {
-      port: 80,
-      deregistrationDelay: Duration.seconds(10)
+    httpListener.addAction('https redirect', {
+      action: ListenerAction.redirect({
+        protocol: 'HTTPS',
+        port: '443'
+      })
     });
-
-    phpMyAdminHttpTargetGroup.addTarget(fargateService)
 
     const brightDevZone = props.awsBrightDevZone;
 

@@ -10,8 +10,8 @@ import {
   FargateTaskDefinition,
   Secret
 } from "aws-cdk-lib/aws-ecs";
-import { IPublicHostedZone } from "aws-cdk-lib/aws-route53";
-import { ApplicationLoadBalancer, ApplicationProtocol } from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import { IPublicHostedZone, CnameRecord } from "aws-cdk-lib/aws-route53";
+import { ApplicationLoadBalancer, ApplicationProtocol, ListenerCertificate } from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as cdk from 'aws-cdk-lib';
 import {
   Credentials,
@@ -21,6 +21,7 @@ import {
 import { Construct } from "constructs";
 import { stackNameOf, ownerSpecificName } from "./utils";
 import { CfnOutput, Duration } from "aws-cdk-lib";
+import { CertificateValidation, Certificate } from "aws-cdk-lib/aws-certificatemanager";
 
 interface MyServiceProps {
   vpc: IVpc
@@ -92,11 +93,46 @@ export class MyServiceStack extends cdk.Stack {
       value: loadBalancer.loadBalancerDnsName
     })
 
-    const phpMyAdminTargetGroup = httpListener.addTargets('phpmyadmin', {
+    const phpMyAdminHttpTargetGroup = httpListener.addTargets('phpmyadmin', {
       port: 80,
       deregistrationDelay: Duration.seconds(10)
     });
 
-    phpMyAdminTargetGroup.addTarget(fargateService)
+    phpMyAdminHttpTargetGroup.addTarget(fargateService)
+
+    const brightDevZone = props.awsBrightDevZone;
+
+    const phpMyAdminRecordName = ownerSpecificName('phpmyadmin');
+    const phpMyAdminFQDN = `${phpMyAdminRecordName}.${brightDevZone.zoneName}`;
+
+    const certificate = new Certificate(this, 'Certificate', {
+      domainName: phpMyAdminFQDN,
+      validation: CertificateValidation.fromDns(brightDevZone)
+    });
+
+    const httpsListener = loadBalancer.addListener('https', {
+      open: true,
+      protocol: ApplicationProtocol.HTTPS,
+      certificates: [ListenerCertificate.fromCertificateManager(certificate)]
+    });
+
+    const phpMyAdminHttpsTargetGroup = httpsListener.addTargets('phpmyadmin', {
+      port: 80,
+      deregistrationDelay: Duration.seconds(10)
+    });
+
+    phpMyAdminHttpsTargetGroup.addTarget(fargateService)
+
+    new CnameRecord(this, 'phpmyadmin cname', {
+      recordName: phpMyAdminRecordName,
+      zone: brightDevZone,
+      domainName: loadBalancer.loadBalancerDnsName,
+      comment: 'phpmyadmin public dns'
+    })
+
+    new CfnOutput(this, 'phpmyadmin FQDN', {
+      value: phpMyAdminFQDN
+    })
+
   }
 }

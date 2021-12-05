@@ -11,6 +11,7 @@ import {
   Secret
 } from "aws-cdk-lib/aws-ecs";
 import * as cdk from 'aws-cdk-lib';
+import { IPublicHostedZone } from "aws-cdk-lib/aws-route53";
 import {
   Credentials,
   DatabaseInstance,
@@ -21,6 +22,7 @@ import { stackNameOf, ownerSpecificName } from "./utils";
 
 interface MyServiceProps {
   vpc: IVpc
+  awsBrightDevZone: IPublicHostedZone
 }
 
 export class MyServiceStack extends cdk.Stack {
@@ -40,12 +42,15 @@ export class MyServiceStack extends cdk.Stack {
       credentials: Credentials.fromGeneratedSecret("service")
     });
 
-    const bastion = new BastionHostLinux(this, 'Bastion', {
-      vpc: props.vpc,
-      instanceName: ownerSpecificName('bastion')
-    })
+    const enableBastionHost = process.env.BASTION_HOST_ENABLED?.toLocaleLowerCase() == 'true'
+    if (enableBastionHost) {
+      const bastion = new BastionHostLinux(this, 'Bastion', {
+        vpc: props.vpc,
+        instanceName: ownerSpecificName('bastion')
+      })
 
-    databaseInstance.connections.allowDefaultPortFrom(bastion.connections, "Bastion host connection")
+      databaseInstance.connections.allowDefaultPortFrom(bastion.connections, "Bastion host connection")
+    }
 
     const taskDefinition = new FargateTaskDefinition(this, 'PhpMyAdminTask', {});
 
@@ -67,7 +72,6 @@ export class MyServiceStack extends cdk.Stack {
         vpc: props.vpc,
       }),
       taskDefinition: taskDefinition,
-      assignPublicIp: true
     });
 
     fargateService.connections.allowFromAnyIpv4(Port.tcp(80))

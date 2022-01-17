@@ -1,5 +1,5 @@
-import { Arn } from "@aws-cdk/core";
-import * as cdk from "@aws-cdk/core";
+import * as cdk from "aws-cdk-lib";
+import { Arn, ArnFormat } from "aws-cdk-lib";
 import { STS } from "aws-sdk";
 
 let _ownerName!: string
@@ -28,7 +28,7 @@ export function stackNameOf<TC extends ({ new(...args: any[]): T }), T extends c
 
 export async function resolveCurrentUserOwnerName() {
   const result = await new STS().getCallerIdentity().promise()
-  const parsed = Arn.parse(result.Arn!);
+  const parsed = Arn.split(result.Arn!, ArnFormat.SLASH_RESOURCE_NAME);
   _ownerName = parsed.resourceName!;
   return _ownerName!;
 }

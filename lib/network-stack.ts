@@ -1,9 +1,10 @@
-import { Vpc } from "@aws-cdk/aws-ec2";
-import * as cdk from '@aws-cdk/core';
+import { Vpc } from "aws-cdk-lib/aws-ec2";
+import * as cdk from 'aws-cdk-lib';
 import { stackNameOf } from "./utils";
+import { Construct } from "constructs";
 
 export class NetworkStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, props?: cdk.StackProps) {
+  constructor(scope: Construct, props?: cdk.StackProps) {
     super(scope, stackNameOf(NetworkStack), );
 
     new Vpc(this, 'VPC', {

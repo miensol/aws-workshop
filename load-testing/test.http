@@ -1,0 +1,9 @@
+GET https://piotr-mionskowski-awstraining-api-server.aws.bright.dev/image?width=200&height=200&key=patryks_team.png
+Accept: image/png
+
+###
+GET https://piotr-mionskowski-awstraining-api-serverless.aws.bright.dev/image?width=200&height=200&key=patryks_team.png
+Accept: image/png
+
+###
+

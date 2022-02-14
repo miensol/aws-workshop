@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { CfnOutput, Duration, RemovalPolicy } from 'aws-cdk-lib';
-import { LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
+import { ContentHandling, LambdaIntegration, LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
 import { Certificate, CertificateValidation } from 'aws-cdk-lib/aws-certificatemanager';
 import {
   BastionHostLinux,
@@ -13,7 +13,8 @@ import {
   Cluster,
   ContainerImage,
   FargateService,
-  FargateTaskDefinition, LogDriver
+  FargateTaskDefinition,
+  LogDriver
 } from 'aws-cdk-lib/aws-ecs';
 import {
   ApplicationLoadBalancer,
@@ -195,6 +196,7 @@ export class MyServiceStack extends cdk.Stack {
 
     const apiServerless = new LambdaRestApi(this, 'api serverless', {
       handler: apiLambda,
+      binaryMediaTypes: ['image/png'],
       domainName: {
         domainName: apiServerlessFQDN,
         certificate: new Certificate(this, 'Serverless Certificate', {

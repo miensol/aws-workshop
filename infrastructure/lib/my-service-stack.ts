@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
-import { CfnOutput, Duration, RemovalPolicy } from 'aws-cdk-lib';
-import { ContentHandling, LambdaIntegration, LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
+import { CfnOutput, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
+import { LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
 import { Certificate, CertificateValidation } from 'aws-cdk-lib/aws-certificatemanager';
 import {
   BastionHostLinux,
@@ -19,6 +19,7 @@ import {
 import {
   ApplicationLoadBalancer,
   ApplicationProtocol,
+  HttpCodeTarget,
   ListenerAction,
   ListenerCertificate
 } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
@@ -39,9 +40,11 @@ import {
 import { ARecord, CnameRecord, IPublicHostedZone, RecordTarget } from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { Topic } from "aws-cdk-lib/aws-sns";
 import { Construct } from 'constructs';
 import * as path from 'path';
 import { ownerSpecificName, stackNameOf } from './utils';
+import { SnsAction } from 'aws-cdk-lib/aws-cloudwatch-actions';
 
 interface MyServiceProps {
   vpc: IVpc
@@ -95,6 +98,8 @@ export class MyServiceStack extends cdk.Stack {
       healthCheckGracePeriod: Duration.seconds(10)
     });
 
+    const slackAlarmsTopic = Topic.fromTopicArn(this, 'Bright Slack Aws Training', Fn.importValue('BrightTraining:notifications-slack-aws-training'))
+
     const fargateAutoScaling = fargateService.autoScaleTaskCount({
       maxCapacity: 10
     });
@@ -108,6 +113,16 @@ export class MyServiceStack extends cdk.Stack {
       vpc: props.vpc,
       internetFacing: true
     });
+
+    const highNoOf5xx = loadBalancer.metricHttpCodeTarget(HttpCodeTarget.TARGET_5XX_COUNT)
+      .createAlarm(this, 'High Number of 5xx', {
+        evaluationPeriods: 1,
+        threshold: 5,
+        alarmDescription: `High number of 5xx`
+      });
+
+    highNoOf5xx.addAlarmAction(new SnsAction(slackAlarmsTopic))
+    highNoOf5xx.addOkAction(new SnsAction(slackAlarmsTopic))
 
     const httpListener = loadBalancer.addListener('http', {
       open: true,

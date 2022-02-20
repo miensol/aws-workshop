@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { S3 } from "aws-sdk";
-import * as sharp from 'sharp'
+import sharp from "sharp";
 
 @Injectable()
 export class AppService {

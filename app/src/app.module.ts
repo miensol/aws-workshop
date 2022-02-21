@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { S3 } from "aws-sdk";
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { OpenTelemetryModuleConfig } from "./tracing";
 
 @Module({
-  imports: [],
+  imports: [OpenTelemetryModuleConfig],
   controllers: [AppController],
   providers: [AppService, {
     useClass: S3,

@@ -18,7 +18,7 @@ configureProcessEnvDebugVariable()
 // we use debug library to parse the process.env.DEBUG variable, yeah, one could optimize that
 function levelForLogger(loggerName: string) {
   const debuggerForLevel = debug(loggerName);
-  return debuggerForLevel.enabled ? "debug" : "error"
+  return debuggerForLevel.enabled ? "trace" : "error"
 }
 
 function createLogger(name: string) {

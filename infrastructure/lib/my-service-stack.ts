@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { CfnOutput, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
 import { Certificate, CertificateValidation } from 'aws-cdk-lib/aws-certificatemanager';
+import { SnsAction } from 'aws-cdk-lib/aws-cloudwatch-actions';
 import {
   BastionHostLinux,
   InstanceClass,
@@ -43,8 +44,8 @@ import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Topic } from "aws-cdk-lib/aws-sns";
 import { Construct } from 'constructs';
 import * as path from 'path';
+import { AwsOtel } from "./aws-otel";
 import { ownerSpecificName, stackNameOf } from './utils';
-import { SnsAction } from 'aws-cdk-lib/aws-cloudwatch-actions';
 
 interface MyServiceProps {
   vpc: IVpc
@@ -87,6 +88,8 @@ export class MyServiceStack extends cdk.Stack {
         logGroup: apiServerLogGroup
       })
     });
+
+    taskDefinition.addExtension(new AwsOtel({ logGroup: apiServerLogGroup }))
 
     imagesBucket.grantRead(taskDefinition.taskRole)
 

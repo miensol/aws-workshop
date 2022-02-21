@@ -14,8 +14,7 @@ export class AwsOtel implements ITaskDefinitionExtension {
 
   extend(taskDefinition: TaskDefinition): void {
     taskDefinition.addContainer("aws-otel-collector", {
-      // image: ContainerImage.fromRegistry("amazon/aws-otel-collector:latest"),
-      image: ContainerImage.fromAsset('/Users/piotr/dev/bright-aws-workshop/app/config'),
+      image: ContainerImage.fromRegistry("amazon/aws-otel-collector:latest"),
       command: ['--config=/etc/ecs/ecs-cloudwatch-xray.yaml'],
       portMappings: [{
         containerPort: 4317

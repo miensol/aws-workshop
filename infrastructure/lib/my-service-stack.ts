@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import { CfnOutput, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
+import { CfnOutput, DockerImage, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
 import { Certificate, CertificateValidation } from 'aws-cdk-lib/aws-certificatemanager';
 import { SnsAction } from 'aws-cdk-lib/aws-cloudwatch-actions';
@@ -29,7 +29,8 @@ import {
   Code,
   Function as LambdaFunction,
   LayerVersion,
-  Runtime
+  Runtime,
+  Tracing
 } from "aws-cdk-lib/aws-lambda";
 import { LogGroup } from "aws-cdk-lib/aws-logs";
 import {
@@ -191,7 +192,7 @@ export class MyServiceStack extends cdk.Stack {
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'app'), {
         exclude: ['*', '!package.json', '!package-lock.json'],
         bundling: {
-          image: lambdaRuntime.bundlingImage,
+          image: DockerImage.fromBuild(path.join(__dirname, '..', 'lambda-bundling-image')),
           user: 'root',
           command: ['bash', '-c', 'mkdir /asset-output/nodejs && cd $_ &&'
           + 'cp /asset-input/{package.json,package-lock.json} . &&'
@@ -200,16 +201,22 @@ export class MyServiceStack extends cdk.Stack {
       })
     });
 
+    const awsOtelLayer = LayerVersion.fromLayerVersionArn(this, 'aws otel layer',
+      `arn:aws:lambda:${this.region}:901920570463:layer:aws-otel-nodejs-amd64-ver-1-0-1:1`
+      )
+
     const apiLambda = new LambdaFunction(this, 'api lambda', {
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'app', 'dist')),
       handler: "main-lambda.handler",
-      architecture: Architecture.ARM_64,
+      architecture: Architecture.X86_64,
       environment: {
-        ...apiEnvVariables
+        ...apiEnvVariables,
+        AWS_LAMBDA_EXEC_WRAPPER: '/opt/otel-handler'
       },
       memorySize: memorySize,
       runtime: lambdaRuntime,
-      layers: [prodDependencies]
+      tracing: Tracing.ACTIVE,
+      layers: [awsOtelLayer, prodDependencies]
     });
 
     const apiServerless = new LambdaRestApi(this, 'api serverless', {

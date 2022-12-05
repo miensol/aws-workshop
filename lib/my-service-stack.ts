@@ -1,3 +1,4 @@
+import { CfnOutput, Duration } from "aws-cdk-lib";
 import { IVpc, Vpc, InstanceClass,
   InstanceSize,
   InstanceType,
@@ -12,11 +13,15 @@ import {
 } from "aws-cdk-lib/aws-ecs";
 import * as cdk from 'aws-cdk-lib';
 import {
+  ApplicationLoadBalancer,
+  ApplicationProtocol
+} from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import {
   Credentials,
   DatabaseInstance,
   DatabaseInstanceEngine, MysqlEngineVersion,
 } from "aws-cdk-lib/aws-rds";
-import { IPublicHostedZone } from "aws-cdk-lib/aws-route53";
+import { CnameRecord, IPublicHostedZone } from "aws-cdk-lib/aws-route53";
 import { Construct } from "constructs";
 import { stackNameOf, ownerSpecificName } from "./utils";
 
@@ -71,12 +76,46 @@ export class MyServiceStack extends cdk.Stack {
       cluster: new Cluster(this, 'Cluster', {
         vpc: props.vpc,
       }),
-      taskDefinition: taskDefinition,
-      assignPublicIp: true
+      taskDefinition: taskDefinition
     });
 
-    fargateService.connections.allowFromAnyIpv4(Port.tcp(80))
-
     databaseInstance.connections.allowDefaultPortFrom(fargateService.connections, "PhpMyAdmin")
+
+    const brightDevZone = props.awsBrightDevZone;
+
+    const phpMyAdminRecordName = ownerSpecificName('phpmyadmin');
+    const phpMyAdminFQDN = `${phpMyAdminRecordName}.${brightDevZone.zoneName}`;
+
+    const loadBalancer = new ApplicationLoadBalancer(this, 'Load Balancer', {
+      vpc: props.vpc,
+      internetFacing: true
+    });
+
+    const httpListener = loadBalancer.addListener('http', {
+      open: true,
+      protocol: ApplicationProtocol.HTTP
+    });
+
+    const phpMyAdminTargetGroup = httpListener.addTargets('phpmyadmin', {
+      port: 80,
+      deregistrationDelay: Duration.seconds(10)
+    });
+
+    phpMyAdminTargetGroup.addTarget(fargateService)
+
+    new CnameRecord(this, 'phpmyadmin cname', {
+      recordName: phpMyAdminRecordName,
+      zone: brightDevZone,
+      domainName: loadBalancer.loadBalancerDnsName,
+      comment: 'phpmyadmin public dns'
+    })
+
+    new CfnOutput(this, 'Load Balancer FQDN', {
+      value: loadBalancer.loadBalancerDnsName
+    })
+
+    new CfnOutput(this, 'phpmyadmin FQDN', {
+      value: phpMyAdminFQDN
+    })
   }
 }

@@ -1,9 +1,13 @@
+import * as cdk from "aws-cdk-lib";
 import { CfnOutput, Duration } from "aws-cdk-lib";
-import { IVpc, Vpc, InstanceClass,
+import { Certificate, CertificateValidation } from "aws-cdk-lib/aws-certificatemanager";
+import {
+  BastionHostLinux,
+  InstanceClass,
   InstanceSize,
   InstanceType,
-  BastionHostLinux,
-  Port, } from "aws-cdk-lib/aws-ec2";
+  IVpc,
+} from "aws-cdk-lib/aws-ec2";
 import {
   Cluster,
   ContainerImage,
@@ -11,19 +15,19 @@ import {
   FargateTaskDefinition,
   Secret
 } from "aws-cdk-lib/aws-ecs";
-import * as cdk from 'aws-cdk-lib';
 import {
   ApplicationLoadBalancer,
-  ApplicationProtocol
+  ApplicationProtocol, ListenerCertificate
 } from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import {
   Credentials,
   DatabaseInstance,
-  DatabaseInstanceEngine, MysqlEngineVersion,
+  DatabaseInstanceEngine,
+  MysqlEngineVersion,
 } from "aws-cdk-lib/aws-rds";
 import { CnameRecord, IPublicHostedZone } from "aws-cdk-lib/aws-route53";
 import { Construct } from "constructs";
-import { stackNameOf, ownerSpecificName } from "./utils";
+import { ownerSpecificName, stackNameOf } from "./utils";
 
 interface MyServiceProps {
   vpc: IVpc
@@ -91,9 +95,27 @@ export class MyServiceStack extends cdk.Stack {
       internetFacing: true
     });
 
+    new CnameRecord(this, 'phpmyadmin cname', {
+      recordName: phpMyAdminRecordName,
+      zone: brightDevZone,
+      domainName: loadBalancer.loadBalancerDnsName,
+      comment: 'phpmyadmin public dns'
+    })
+
     const httpListener = loadBalancer.addListener('http', {
       open: true,
       protocol: ApplicationProtocol.HTTP
+    });
+
+    const certificate = new Certificate(this, 'certificate', {
+      domainName: `${phpMyAdminRecordName}.aws.bright.dev`,
+      validation: CertificateValidation.fromDns(brightDevZone)
+    });
+
+    const httpsListener = loadBalancer.addListener('https', {
+      open: true,
+      protocol: ApplicationProtocol.HTTPS,
+      certificates: [ListenerCertificate.fromCertificateManager(certificate)]
     });
 
     const phpMyAdminTargetGroup = httpListener.addTargets('phpmyadmin', {
@@ -101,14 +123,13 @@ export class MyServiceStack extends cdk.Stack {
       deregistrationDelay: Duration.seconds(10)
     });
 
+    const phpMyAdminHttpsTargetGroup = httpsListener.addTargets('phpmyadmin', {
+      port: 80,
+      deregistrationDelay: Duration.seconds(10)
+    });
     phpMyAdminTargetGroup.addTarget(fargateService)
 
-    new CnameRecord(this, 'phpmyadmin cname', {
-      recordName: phpMyAdminRecordName,
-      zone: brightDevZone,
-      domainName: loadBalancer.loadBalancerDnsName,
-      comment: 'phpmyadmin public dns'
-    })
+    phpMyAdminHttpsTargetGroup.addTarget(fargateService)
 
     new CfnOutput(this, 'Load Balancer FQDN', {
       value: loadBalancer.loadBalancerDnsName

@@ -6,14 +6,15 @@ import { Cluster, ContainerImage, FargateService, FargateTaskDefinition, Secret 
 import { Credentials, DatabaseInstance, DatabaseInstanceEngine, MysqlEngineVersion, } from 'aws-cdk-lib/aws-rds'
 import { IPublicHostedZone } from 'aws-cdk-lib/aws-route53'
 import { Construct } from 'constructs'
-import { ownerSpecificName, stackNameOf } from './utils'
-import { HttpApi, IVpcLink } from '@aws-cdk/aws-apigatewayv2-alpha'
-import { HttpServiceDiscoveryIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha'
+import { ownerName, ownerSpecificName, stackNameOf } from './utils'
+import { HttpApi, HttpMethod, IVpcLink } from '@aws-cdk/aws-apigatewayv2-alpha'
+import { HttpLambdaIntegration, HttpServiceDiscoveryIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha'
 import { IPrivateDnsNamespace } from 'aws-cdk-lib/aws-servicediscovery/lib/private-dns-namespace'
 import { CfnApiGatewayManagedOverrides, CfnStage } from 'aws-cdk-lib/aws-apigatewayv2'
 import { LogGroup } from 'aws-cdk-lib/aws-logs'
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
+import * as path from 'path'
 import AccessLogSettingsProperty = CfnApiGatewayManagedOverrides.AccessLogSettingsProperty
-import * as http from 'http'
 
 interface MyServiceProps {
   gatewayVpcLink: IVpcLink;
@@ -91,7 +92,7 @@ export class MyServiceStack extends cdk.Stack {
     })
 
     const httpApi = new HttpApi(this, 'api gateway', {
-      defaultIntegration: new HttpServiceDiscoveryIntegration('phpmyadmin', fargateService.cloudMapService!, {
+      defaultIntegration: new HttpServiceDiscoveryIntegration('phpmyadmin-default', fargateService.cloudMapService!, {
         vpcLink: props.gatewayVpcLink,
       }),
     })
@@ -106,6 +107,26 @@ export class MyServiceStack extends cdk.Stack {
       destinationArn: apiGatewayLogGroup.logGroupArn,
       format: '$context.identity.sourceIp - - [$context.requestTime] "$context.httpMethod $context.routeKey $context.protocol" $context.status $context.responseLength $context.requestId $context.error.message'
     } as AccessLogSettingsProperty
+
+    httpApi.addRoutes({
+      path: '/',
+      methods: [ HttpMethod.ANY ],
+      integration: new HttpServiceDiscoveryIntegration('phpmyadmin', fargateService.cloudMapService!, {
+        vpcLink: props.gatewayVpcLink,
+      }),
+    })
+
+    httpApi.addRoutes({
+      path: '/lambda',
+      methods: [ HttpMethod.ANY ],
+      integration: new HttpLambdaIntegration('whoami', new NodejsFunction(this, 'whoami', {
+        vpc: props.vpc,
+        entry: path.join(process.cwd(), 'lib', 'whoami.lambda.ts'),
+        environment: {
+          OWNER_NAME: ownerName()
+        }
+      }))
+    })
 
     new CfnOutput(this, 'phpmyadmin FQDN', {
       value: phpMyAdminFQDN

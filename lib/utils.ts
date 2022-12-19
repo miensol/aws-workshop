@@ -4,7 +4,7 @@ import { STS } from "aws-sdk";
 
 let _ownerName!: string
 
-function ownerName() {
+export function ownerName() {
   const user = process.env.USER
   if (!_ownerName && !user) {
     throw new Error('Neither process.env.USER nor resolveCurrentUserOwnerName called')

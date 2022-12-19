@@ -15,7 +15,9 @@ async function main() {
 
   const myService = new MyServiceStack(app, {
     vpc: network.vpc,
-    awsBrightDevZone: network.awsBrightDevZone
+    gatewayVpcLink: network.gatewayVpcLink,
+    awsBrightDevZone: network.awsBrightDevZone,
+    privateNamespace: network.privateNamespace
   })
 
   const appTags = Tags.of(app);

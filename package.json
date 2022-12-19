@@ -11,8 +11,10 @@
     "cdk": "AWS_REGION=eu-central-1 cdk"
   },
   "devDependencies": {
-    "aws-cdk": "^2.50.0",
-    "aws-cdk-lib": "^2.50.0",
+    "aws-cdk": "^2.55.1",
+    "aws-cdk-lib": "^2.55.1",
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.55.1-alpha.0",
+    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.55.1-alpha.0",
     "@types/node": "^16.11.7",
     "aws-sdk": "^2.1248.0",
     "jest": "^26.4.2",

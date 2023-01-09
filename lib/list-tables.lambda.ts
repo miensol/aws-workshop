@@ -6,6 +6,7 @@ const ssm = new SecretsManager({})
 
 const databaseCredentials = (async () => {
   try {
+    console.log('Resolve secrets')
     const secret = await ssm.getSecretValue({
       SecretId: process.env.DATABASE_CREDENTIALS_SECRET_ID!,
     }).promise()
@@ -29,7 +30,7 @@ const connection = (async () => {
   return connection
 })()
 
-export const handler: APIGatewayProxyHandlerV2 = async (event) => {
+const handler: APIGatewayProxyHandlerV2 = async (event) => {
   const conn = await connection
 
   const [rows, fields] = await conn.execute('SHOW FULL PROCESSLIST')
@@ -38,8 +39,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   })
   return {
     statusCode: 200,
-    body: JSON.stringify(
-      { rows, fields }
-    )
+    body: JSON.stringify({
+      queries: rows
+    })
   }
 }
+
+module.exports = { handler }

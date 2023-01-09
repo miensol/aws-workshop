@@ -1,13 +1,6 @@
 import * as cdk from 'aws-cdk-lib'
-import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib'
-import {
-  BastionHostLinux,
-  InstanceClass,
-  InstanceSize,
-  InstanceType,
-  IVpc,
-  SecurityGroup,
-} from 'aws-cdk-lib/aws-ec2'
+import { CfnOutput, Duration, RemovalPolicy, Stack } from 'aws-cdk-lib'
+import { BastionHostLinux, InstanceClass, InstanceSize, InstanceType, IVpc, SecurityGroup, } from 'aws-cdk-lib/aws-ec2'
 import { Credentials, DatabaseInstance, DatabaseInstanceEngine, MysqlEngineVersion, } from 'aws-cdk-lib/aws-rds'
 import { IPublicHostedZone } from 'aws-cdk-lib/aws-route53'
 import { Construct } from 'constructs'
@@ -19,6 +12,7 @@ import { CfnApiGatewayManagedOverrides, CfnStage } from 'aws-cdk-lib/aws-apigate
 import { LogGroup } from 'aws-cdk-lib/aws-logs'
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as path from 'path'
+import { Code, LayerVersion, Tracing } from 'aws-cdk-lib/aws-lambda'
 import AccessLogSettingsProperty = CfnApiGatewayManagedOverrides.AccessLogSettingsProperty
 
 interface MyServiceProps {
@@ -61,8 +55,7 @@ export class MyServiceStack extends cdk.Stack {
       databaseInstance.connections.allowDefaultPortFrom(bastion.connections, 'Bastion host connection')
     }
 
-    const httpApi = new HttpApi(this, 'api gateway', {
-    })
+    const httpApi = new HttpApi(this, 'api gateway', {})
 
     const apiGatewayLogGroup = new LogGroup(this, 'log group', {
       logGroupName: ownerSpecificName('api-gateway'),
@@ -87,11 +80,24 @@ export class MyServiceStack extends cdk.Stack {
       }))
     })
 
+    const region = Stack.of(this).region
+    // https://aws-otel.github.io/docs/getting-started/lambda/lambda-js
+    const otelLambdaLayer = LayerVersion.fromLayerVersionArn(this, 'otel lambda layer', `arn:aws:lambda:${region}:901920570463:layer:aws-otel-nodejs-amd64-ver-1-0-1:1`)
+
+    const otelWorkAround = new LayerVersion(this, 'otel workaround', {
+      code: Code.fromAsset(path.join(process.cwd(), 'lib', 'otel-configure-layer')),
+    })
+
     const listTablesLambda = new NodejsFunction(this, 'list-tables', {
       vpc: props.vpc,
+      layers: [otelLambdaLayer, otelWorkAround],
       securityGroups: [allowConnectingToDatabaseSecurityGroup],
       entry: path.join(process.cwd(), 'lib', 'list-tables.lambda.ts'),
+      tracing: Tracing.ACTIVE,
+      timeout: Duration.minutes(1),
       environment: {
+        AWS_LAMBDA_EXEC_WRAPPER: '/opt/otel-handler',
+        NODE_OPTIONS: '--require /opt/nodejs/otel-configure.js',
         DATABASE_HOST: databaseInstance.dbInstanceEndpointAddress,
         DATABASE_NAME: databaseName,
         DATABASE_CREDENTIALS_SECRET_ID: databaseInstance.secret!.secretName

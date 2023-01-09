@@ -4,7 +4,7 @@ import { SecretsManager } from 'aws-sdk'
 
 const ssm = new SecretsManager({})
 
-const databaseCredentials: Promise<{ username: string, password: string }> = new Promise(async (resolve, reject) => {
+const databaseCredentials = (async () => {
   try {
     const secret = await ssm.getSecretValue({
       SecretId: process.env.DATABASE_CREDENTIALS_SECRET_ID!,
@@ -12,9 +12,9 @@ const databaseCredentials: Promise<{ username: string, password: string }> = new
     return JSON.parse(secret.SecretString!)
   } catch (e) {
     console.error('Failed to resolve database credentials', e)
-    reject(e)
+    throw e;
   }
-})
+})()
 
 const connection = (async () => {
   const credentials = await databaseCredentials

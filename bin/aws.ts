@@ -15,7 +15,6 @@ async function main() {
 
   const myService = new MyServiceStack(app, {
     vpc: network.vpc,
-    gatewayVpcLink: network.gatewayVpcLink,
     awsBrightDevZone: network.awsBrightDevZone,
     privateNamespace: network.privateNamespace
   })

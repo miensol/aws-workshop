@@ -33,6 +33,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   const conn = await connection
 
   const [rows, fields] = await conn.execute('SHOW FULL PROCESSLIST')
+  console.log('Got', {
+    rows, fields
+  })
   return {
     statusCode: 200,
     body: JSON.stringify(

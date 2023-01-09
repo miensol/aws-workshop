@@ -1,3 +1,12 @@
+import { MySQL2Instrumentation } from '@opentelemetry/instrumentation-mysql2'
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
+
+registerInstrumentations({
+  instrumentations: [
+    new MySQL2Instrumentation(),
+  ],
+})
+
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda'
 import { createConnection } from 'mysql2/promise'
 import { SecretsManager } from 'aws-sdk'

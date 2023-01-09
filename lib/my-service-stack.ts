@@ -38,6 +38,7 @@ export class MyServiceStack extends cdk.Stack {
   constructor (scope: Construct, props: MyServiceProps) {
     super(scope, stackNameOf(MyServiceStack),)
 
+    const databaseName = 'service'
     const databaseInstance = new DatabaseInstance(this, 'Database', {
       vpc: props.vpc,
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
@@ -46,9 +47,15 @@ export class MyServiceStack extends cdk.Stack {
       }),
       multiAz: false,
       instanceIdentifier: ownerSpecificName('my-service'),
-      databaseName: 'service',
+      databaseName: databaseName,
       credentials: Credentials.fromGeneratedSecret('service')
     })
+
+    const allowConnectingToDatabaseSecurityGroup = new SecurityGroup(this, 'connect to database marker', {
+      vpc: props.vpc
+    })
+
+    databaseInstance.connections.allowDefaultPortFrom(allowConnectingToDatabaseSecurityGroup)
 
     const enableBastionHost = process.env.BASTION_HOST_ENABLED?.toLocaleLowerCase() == 'true'
     if (enableBastionHost) {
@@ -139,7 +146,7 @@ export class MyServiceStack extends cdk.Stack {
     } as AccessLogSettingsProperty
 
     httpApi.addRoutes({
-      path: '/lambda',
+      path: '/whoami',
       methods: [HttpMethod.ANY],
       integration: new HttpLambdaIntegration('whoami', new NodejsFunction(this, 'whoami', {
         vpc: props.vpc,
@@ -149,6 +156,24 @@ export class MyServiceStack extends cdk.Stack {
         }
       }))
     })
+
+    const listTablesLambda = new NodejsFunction(this, 'list-tables', {
+      vpc: props.vpc,
+      securityGroups: [allowConnectingToDatabaseSecurityGroup],
+      entry: path.join(process.cwd(), 'lib', 'list-tables.lambda.ts'),
+      environment: {
+        DATABASE_HOST: databaseInstance.dbInstanceEndpointAddress,
+        DATABASE_NAME: databaseName,
+        DATABASE_CREDENTIALS_SECRET_ID: databaseInstance.secret!.secretName
+      }
+    })
+    httpApi.addRoutes({
+      path: '/list-tables',
+      methods: [HttpMethod.ANY],
+      integration: new HttpLambdaIntegration('list-tables', listTablesLambda)
+    })
+
+    databaseInstance.secret!.grantRead(listTablesLambda)
 
     new CfnOutput(this, 'phpmyadmin FQDN', {
       value: phpMyAdminFQDN

@@ -1,6 +1,7 @@
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda'
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
-  console.log({ event })
-  return { statusCode: 200, body: JSON.stringify({ owner: process.env.OWNER_NAME, body: event.body }) }
+  const owner = process.env.OWNER_NAME
+  console.log({ event, owner })
+  return { statusCode: 200, body: JSON.stringify({ owner: owner, body: event.body }) }
 }

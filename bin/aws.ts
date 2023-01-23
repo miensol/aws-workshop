@@ -5,6 +5,7 @@ import 'source-map-support/register';
 import { NetworkStack } from "../lib/network-stack";
 import { resolveCurrentUserOwnerName } from "../lib/utils";
 import { EKS } from '../lib/eks'
+import { ServiceStack } from '../lib/service-stack'
 
 async function main() {
   const owner = await resolveCurrentUserOwnerName();
@@ -13,8 +14,12 @@ async function main() {
 
   const network = new NetworkStack(app);
 
-  new EKS(app, {
+  const eks = new EKS(app, {
     vpc: network.vpc,
+  })
+
+  new ServiceStack(app, {
+    cluster: eks.cluster
   })
 
   const appTags = Tags.of(app);

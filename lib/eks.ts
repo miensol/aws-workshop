@@ -8,11 +8,11 @@ interface EksClusterProps {
   vpc: IVpc
 }
 
-export class EksCluster extends cdk.Stack {
+export class EKS extends cdk.Stack {
   readonly cluster: Cluster
 
   constructor (scope: Construct, props: EksClusterProps) {
-    super(scope, stackNameOf(EksCluster))
+    super(scope, stackNameOf(EKS))
 
     this.cluster = new Cluster(this, 'cluster', {
       vpc: props.vpc, version: KubernetesVersion.V1_24,

@@ -4,7 +4,7 @@ import { Tags } from "aws-cdk-lib";
 import 'source-map-support/register';
 import { NetworkStack } from "../lib/network-stack";
 import { resolveCurrentUserOwnerName } from "../lib/utils";
-import { EksCluster } from '../lib/eks-cluster'
+import { EKS } from '../lib/eks'
 
 async function main() {
   const owner = await resolveCurrentUserOwnerName();
@@ -13,7 +13,7 @@ async function main() {
 
   const network = new NetworkStack(app);
 
-  new EksCluster(app, {
+  new EKS(app, {
     vpc: network.vpc,
   })
 

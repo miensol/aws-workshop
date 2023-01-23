@@ -14,6 +14,7 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as path from 'path'
 import { Code, LayerVersion, Tracing } from 'aws-cdk-lib/aws-lambda'
 import AccessLogSettingsProperty = CfnApiGatewayManagedOverrides.AccessLogSettingsProperty
+import { Dashboard, GraphWidget } from 'aws-cdk-lib/aws-cloudwatch'
 
 interface MyServiceProps {
   vpc: IVpc;
@@ -55,7 +56,21 @@ export class MyServiceStack extends cdk.Stack {
       databaseInstance.connections.allowDefaultPortFrom(bastion.connections, 'Bastion host connection')
     }
 
-    const httpApi = new HttpApi(this, 'api gateway', {})
+    const httpApi = new HttpApi(this, 'api gateway', {
+
+    })
+
+    const dashboard = new Dashboard(this, 'dashboard', {
+      dashboardName: ownerSpecificName('test')
+    })
+
+    dashboard.addWidgets(new GraphWidget({
+      statistic: 'Sum',
+      liveData: true,
+      left: [
+        httpApi.metricIntegrationLatency({})
+      ]
+    }))
 
     const apiGatewayLogGroup = new LogGroup(this, 'log group', {
       logGroupName: ownerSpecificName('api-gateway'),
@@ -68,7 +83,12 @@ export class MyServiceStack extends cdk.Stack {
       format: 'requestId=$context.requestId integrationErrorMessage = $context.integrationErrorMessage error.message = $context.error.message'
     } as AccessLogSettingsProperty
 
-    httpApi.addRoutes({
+    defaultStage.defaultRouteSettings = {
+      // dataTraceEnabled: true,
+      // detailedMetricsEnabled: true,
+    }
+
+    const [whoami] = httpApi.addRoutes({
       path: '/whoami',
       methods: [HttpMethod.ANY],
       integration: new HttpLambdaIntegration('whoami', new NodejsFunction(this, 'whoami', {
@@ -106,7 +126,7 @@ export class MyServiceStack extends cdk.Stack {
     httpApi.addRoutes({
       path: '/list-tables',
       methods: [HttpMethod.ANY],
-      integration: new HttpLambdaIntegration('list-tables', listTablesLambda)
+      integration: new HttpLambdaIntegration('list-tables', listTablesLambda),
     })
 
     databaseInstance.secret!.grantRead(listTablesLambda)

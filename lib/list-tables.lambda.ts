@@ -13,7 +13,7 @@ import { SecretsManager } from 'aws-sdk'
 
 const ssm = new SecretsManager({})
 
-const databaseCredentials = (async () => {
+const databaseCredentials: Promise<{username: string, password: string}> = (async () => {
   try {
     console.log('Resolve secrets')
     const secret = await ssm.getSecretValue({

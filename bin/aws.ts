@@ -4,7 +4,7 @@ import { Tags } from "aws-cdk-lib";
 import 'source-map-support/register';
 import { NetworkStack } from "../lib/network-stack";
 import { resolveCurrentUserOwnerName } from "../lib/utils";
-import { MyServiceStack } from "../lib/my-service-stack";
+import { EksCluster } from '../lib/eks-cluster'
 
 async function main() {
   const owner = await resolveCurrentUserOwnerName();
@@ -13,10 +13,8 @@ async function main() {
 
   const network = new NetworkStack(app);
 
-  const myService = new MyServiceStack(app, {
+  new EksCluster(app, {
     vpc: network.vpc,
-    awsBrightDevZone: network.awsBrightDevZone,
-    privateNamespace: network.privateNamespace
   })
 
   const appTags = Tags.of(app);
